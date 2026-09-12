@@ -30,10 +30,18 @@ input,textarea{font-family:inherit;-webkit-user-select:text;user-select:text}
   padding-top:16px;
   padding-top:calc(16px + env(safe-area-inset-top,0px));
 }
-.page{position:absolute;inset:0;display:flex;flex-direction:column;background:#fff;opacity:0;pointer-events:none;transform:scale(.94);transition:opacity .26s,transform .34s cubic-bezier(.32,.72,0,1);overflow:hidden}
+.page{
+  position:absolute;
+  top:calc(env(safe-area-inset-top, 0px) + 12px);
+  left:0;right:0;bottom:0;
+  display:flex;flex-direction:column;
+  background:#fff;opacity:0;pointer-events:none;transform:scale(.94);
+  transition:opacity .26s,transform .34s cubic-bezier(.32,.72,0,1);
+  overflow:hidden;
+}
 .page.active{opacity:1;pointer-events:auto;transform:scale(1);z-index:2}
 #page-home{background:#e5e5ea;background-size:cover;background-position:center;color:#1a1a1a}
-.home-top{flex:none;padding:46px 22px 6px;display:flex;align-items:flex-end;justify-content:space-between;position:relative;min-height:64px}
+.home-top{flex:none;padding:10px 22px 6px;display:flex;align-items:flex-end;justify-content:space-between;position:relative;min-height:64px}
 .home-title{font-family:"Didot","Playfair Display","Times New Roman",serif;font-size:30px;font-weight:400;font-style:italic;letter-spacing:1px;margin:0;color:#1a1a1a;text-shadow:0 1px 8px rgba(255,255,255,.6)}
 .home-done-btn{font-size:13px;font-weight:500;color:#3a3a3c;padding:6px 14px;border-radius:16px;background:rgba(255,255,255,.75);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);display:none}
 .home-done-btn.show{display:block}
@@ -1190,11 +1198,15 @@ function renderSettings(){
   if($('#btnClearWall'))$('#btnClearWall').onclick=()=>{state.settings.wallpaper=null;persist();applyWallpaper();renderSettings();toast('已恢复默认壁纸')};
   $('#chkAutoUpdate').onchange=e=>{state.settings.autoUpdate=e.target.checked;persist()};
   $('#btnCheckUpdate').onclick=()=>{toast('正在检查更新…');setTimeout(()=>toast(`当前已是最新版本 v${state.settings.appVersion||'1.4'}`),1200)};
-  $('#btnForcePull').onclick=()=>{
-    if(!confirm('将清空浏览器缓存并重新加载页面，确定吗？'))return;
-    try{if('caches' in window){caches.keys().then(keys=>Promise.all(keys.map(k=>caches.delete(k))))}}catch(e){}
-    toast('正在拉取更新…');setTimeout(()=>location.reload(true),800);
-  };
+$('#btnForcePull').onclick=()=>{
+  if(!confirm('从服务器重新拉取最新页面（不影响你的字卡/聊天数据）？'))return;
+  toast('正在拉取更新…');
+  setTimeout(()=>{
+    const url=new URL(location.href);
+    url.searchParams.set('_t',Date.now());
+    location.replace(url.toString());
+  },600);
+};
   $('#btnExport').onclick=exportData;
   $('#btnImport').onclick=()=>$('#importFile').click();
   $('#btnReset').onclick=()=>{
@@ -1628,6 +1640,11 @@ $('#page-home').addEventListener('pointermove',()=>{if(!dragEl)clearTimeout(long
 document.addEventListener('keydown',e=>{
   if(e.key==='Escape'){closeSheets();exitHomeEdit();closeBubbleMenu()}
 });
+
+// 清理更新时加的临时参数
+if(location.search.includes('_t=')){
+  history.replaceState(null,'',location.pathname+location.hash);
+}
 
 const startRoute=location.hash.slice(1)||'home';
 applyBubbleCss();applyChatBg();applyWallpaper();applyPWAIcon();
